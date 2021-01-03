@@ -5,40 +5,128 @@ using UnityEngine;
 
 public class Graph : MonoBehaviour
 {
-    [SerializeField] private Transform _pointPrefab = default;
-    [SerializeField] private int _resolution = 100;
-    [SerializeField]
-    private FunctionLibrary.FunctionName function = default;
-    private Transform[] _points;
+	[SerializeField]
+	Transform pointPrefab = default;
 
-    private void Awake()
-    {
-        float step = 2f / _resolution;
-        Vector3 scale = new Vector3(0.1f, 0.1f, 0.1f);
-        _points = new Transform[_resolution * _resolution];
-        for (int i = 0; i < _points.Length; i++)
-        {
-            Transform point = Instantiate(_pointPrefab);
-            point.localScale = scale;
-            point.SetParent(transform, false);
-            _points[i] = point;
-        }
-    }
+	[SerializeField, Range(10, 100)]
+	int resolution = 10;
 
-    private void Update()
-    {
-        FunctionLibrary.Function f = FunctionLibrary.GetFunction(function);
-        float step = 2f / _resolution;
-        float v = 0.5f * step - 1f;
-        for (int i = 0, x = 0, z = 0; i < _points.Length; i++, x++)
-        {
-            if (x == _resolution) { 
-                x = 0;
-                z += 1;
-                v = (z + 0.5f) * step - 1f;
-            }
-            float u = (x + 0.5f) * step - 1f;
-            _points[i].localPosition = f(u, v, Time.time);
-        }
-    }
+	[SerializeField]
+	FunctionLibrary.FunctionName function = default;
+
+	public enum TransitionMode { Cycle, Random, Solo }
+
+	[SerializeField]
+	TransitionMode transitionMode = TransitionMode.Cycle;
+
+	[SerializeField, Min(0f)]
+	float functionDuration = 1f, transitionDuration = 1f;
+
+	Transform[] points;
+
+	float duration;
+
+	bool transitioning;
+
+	FunctionLibrary.FunctionName transitionFunction;
+
+	void Awake()
+	{
+		float step = 2f / resolution;
+		var scale = Vector3.one * step;
+		points = new Transform[resolution * resolution];
+		for (int i = 0; i < points.Length; i++)
+		{
+			Transform point = Instantiate(pointPrefab);
+			point.localScale = scale;
+			point.SetParent(transform, false);
+			points[i] = point;
+		}
+	}
+
+	void Update()
+	{
+		duration += Time.deltaTime;
+		if (transitioning)
+		{
+			if (duration >= transitionDuration)
+			{
+				duration -= transitionDuration;
+				transitioning = false;
+			}
+		}
+		else if (duration >= functionDuration)
+		{
+			duration -= functionDuration;
+			transitioning = true;
+			transitionFunction = function;
+			PickNextFunction();
+		}
+
+		if (transitioning)
+		{
+			UpdateFunctionTransition();
+		}
+		else
+		{
+			UpdateFunction();
+		}
+	}
+
+	void PickNextFunction()
+	{
+		if (transitionMode == TransitionMode.Cycle)
+		{
+			function = FunctionLibrary.GetNextFunctionName(function);
+		} else
+		{
+			if (transitionMode == TransitionMode.Random)
+			{
+				function = FunctionLibrary.GetRandomFunctionNameOtherThan(function);
+			}
+		}
+	}
+
+	void UpdateFunction()
+	{
+		FunctionLibrary.Function f = FunctionLibrary.GetFunction(function);
+		float time = Time.time;
+		float step = 2f / resolution;
+		float v = 0.5f * step - 1f;
+		for (int i = 0, x = 0, z = 0; i < points.Length; i++, x++)
+		{
+			if (x == resolution)
+			{
+				x = 0;
+				z += 1;
+				v = (z + 0.5f) * step - 1f;
+			}
+			float u = (x + 0.5f) * step - 1f;
+			points[i].localPosition = f(u, v, time);
+		}
+	}
+
+	void UpdateFunctionTransition()
+	{
+		FunctionLibrary.Function
+			from = FunctionLibrary.GetFunction(transitionFunction),
+			to = FunctionLibrary.GetFunction(function);
+		float progress = duration / transitionDuration;
+		float time = Time.time;
+		float step = 2f / resolution;
+		float v = 0.5f * step - 1f;
+		for (int i = 0, x = 0, z = 0; i < points.Length; i++, x++)
+		{
+			if (x == resolution)
+			{
+				x = 0;
+				z += 1;
+				v = (z + 0.5f) * step - 1f;
+			}
+			float u = (x + 0.5f) * step - 1f;
+			points[i].localPosition = FunctionLibrary.Morph(
+				u, v, time, from, to, progress
+			);
+		}
+	}
 }

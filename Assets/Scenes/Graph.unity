@@ -152,9 +152,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ebe82ca0afc1734aa6cb00fff023dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _pointPrefab: {fileID: 6095185217560218172, guid: 1167c5f60d8498c4dab11b31ebc6fa36, type: 3}
-  _resolution: 100
-  function: 4
+  pointPrefab: {fileID: 6095185217560218172, guid: 1167c5f60d8498c4dab11b31ebc6fa36, type: 3}
+  resolution: 100
+  function: 0
+  transitionMode: 0
+  functionDuration: 0.1
+  transitionDuration: 0.4
 --- !u!4 &292177700
 Transform:
   m_ObjectHideFlags: 0
